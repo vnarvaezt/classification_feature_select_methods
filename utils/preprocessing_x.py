@@ -3,7 +3,7 @@ import re
 import numpy as np
 from utils.tools import standard_name_cols, upper_consistent, check_nan
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.model_selection import train_test_split
+
 
 
 class PreprocessData:
@@ -14,18 +14,17 @@ class PreprocessData:
         pass
     def run_preprocessing(self,
                           df_x,
-                          county_fips_list,
                           cat_max_lvls=10,
                           abs_corr_thresh=0.90,
                           feat_to_keep="",
                           max_var_toDrop=0.01
                           ):
-        # Find FIPS column name
-        FIPS_name = df_x.filter(regex='FIPS|fips').columns[0]
-        df_x = df_x.rename(columns={FIPS_name: "FIPS_CODE"})
-
-        df_x.columns = standard_name_cols(df_x.columns)
-        df_x[["STATE", "AREA_NAME"]] = upper_consistent(df_x[["STATE", "AREA_NAME"]])
+        # # Find FIPS column name
+        # FIPS_name = df_x.filter(regex='FIPS|fips').columns[0]
+        # df_x = df_x.rename(columns={FIPS_name: "FIPS_CODE"})
+        #
+        # df_x.columns = standard_name_cols(df_x.columns)
+        # df_x[["STATE", "AREA_NAME"]] = upper_consistent(df_x[["STATE", "AREA_NAME"]])
 
         # fix data types
         object_columns = ["STATE", "AREA_NAME", "FIPS_CODE"]
@@ -35,41 +34,27 @@ class PreprocessData:
         # df with correct types
         df_x_types = self._split_categ_conti(df_x, cat_max_lvls)
 
-        # select only the counties
-        df_x_county = self._split_state_county(df_x_types, county_fips_list)
-
         # update numeric columns
-        numeric_columns = df_x_county.select_dtypes(np.number).columns.tolist()
-        category_columns = df_x_county.select_dtypes(exclude=np.number).columns.tolist()
+        numeric_columns = df_x_types.select_dtypes(np.number).columns.tolist()
+        category_columns = df_x_types.select_dtypes(exclude=np.number).columns.tolist()
         # fill numeric nan with -99
-        df_x_county[numeric_columns] = df_x_county[numeric_columns].fillna(-99)
+        df_x_types[numeric_columns] = df_x_types[numeric_columns].fillna(-99)
 
         df_x_numeric_preprocessed = self.select_features(
-            df_x_county.select_dtypes(np.number),
+            df_x_types.select_dtypes(np.number),
             abs_corr_thresh,
             feat_to_keep,
             max_var_toDrop
         )
         df_x_preprocessed = pd.concat(
-            [df_x_county[category_columns],
+            [df_x_types[category_columns],
              df_x_numeric_preprocessed],
             axis=1
         )
         return df_x_preprocessed
 
-    def split_train_test(self, df, test_size, random_state):
-        try:
-            print("Splitting into train and test")
-            X_train_, X_test_ = train_test_split(
-                df, test_size=test_size,
-                random_state=random_state, shuffle=True
-            )
-            return X_train_, X_test_
-        except Exception as e:
-            raise e
-
-
     def _split_features_categ_conti(self, df, cat_max_lvls):
+
         """Tag each column name as Categorical or Continuous features.
 
         The following strategy is used :

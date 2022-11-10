@@ -1,5 +1,8 @@
 import re
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
+
 # Tools
 def upper_consistent(df):
     df = df.apply(lambda x: x.str.upper() if x.dtype == "object" else x)
@@ -15,6 +18,7 @@ def standard_name_cols(data_columns):
 
 
 def read_excel(path):
+
     with open(path, mode="rb") as excel_file:
         _excel_file = pd.read_excel(excel_file,
                                     # converters={'FIPS Code': str}
@@ -30,7 +34,7 @@ def read_excel(path):
 
     # set header
     header_row = _excel_file.iloc[0]
-
+    # final df
     df = pd.DataFrame(_excel_file.values[1:], columns=header_row)
 
     return df
@@ -69,3 +73,15 @@ def check_duplicates(data, keys):
         r += f"There none duplicates based on keys {keys}\n"
 
     print("\n%s" % r)
+
+
+def split_train_test(df, test_size, random_state):
+    try:
+        print("Splitting into train and test")
+        X_train_, X_test_ = train_test_split(
+            df, test_size=test_size,
+            random_state=random_state, shuffle=True
+        )
+        return X_train_, X_test_
+    except Exception as e:
+        raise e
