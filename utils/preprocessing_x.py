@@ -1,17 +1,20 @@
 import pandas as pd
 import re
 import numpy as np
-from utils.tools import standard_name_cols, upper_consistent, check_nan
 from sklearn.feature_selection import VarianceThreshold
+from utils.tools import input_value
 
+import sys
 
 
 class PreprocessData:
     """
     Preprocessing
     """
+
     def __init__(self):
         pass
+
     def run_preprocessing(self,
                           df_x,
                           cat_max_lvls=10,
@@ -34,14 +37,17 @@ class PreprocessData:
         # df with correct types
         df_x_types = self._split_categ_conti(df_x, cat_max_lvls)
 
+        # handle nan
+        df_x_no_nan = self.check_nan(df_x_types, True, group_cols=["STATE"])
         # update numeric columns
-        numeric_columns = df_x_types.select_dtypes(np.number).columns.tolist()
-        category_columns = df_x_types.select_dtypes(exclude=np.number).columns.tolist()
+        numeric_columns = df_x_no_nan.select_dtypes(np.number).columns.tolist()
+        category_columns = df_x_no_nan.select_dtypes(exclude=np.number).columns.tolist()
+        # TODO: the following line should not longer be needed
         # fill numeric nan with -99
-        df_x_types[numeric_columns] = df_x_types[numeric_columns].fillna(-99)
+        # df_x_no_nan[numeric_columns] = df_x_no_nan[numeric_columns].fillna(-99)
 
         df_x_numeric_preprocessed = self.select_features(
-            df_x_types.select_dtypes(np.number),
+            df_x_no_nan.select_dtypes(np.number),
             abs_corr_thresh,
             feat_to_keep,
             max_var_toDrop
@@ -179,7 +185,6 @@ class PreprocessData:
         }
         return splitter
 
-
     def _split_categ_conti(self, df_x, cat_max_lvls):
 
         splitter = self._split_features_categ_conti(df_x, cat_max_lvls)
@@ -193,6 +198,58 @@ class PreprocessData:
 
         return df_x_concat
 
+    def check_nan(self, data, do_imputation=False, group_cols=[]):
+        nb_lines = data.shape[0]
+        nb_nan = data.isna().sum() / nb_lines
+        part_nan = nb_nan[nb_nan > 0]
+
+        r = ""
+        if not part_nan.empty:
+            r += "There are features with NAN values :\n"
+            r += f"Number of features with NAN = {len(part_nan.keys())}\n"
+            r += f"Number of values with NAN = {sum(data.isna().sum())}\n"
+            r += "=" * 88 + "\n"
+            r += "[Feature] <--- has empty values ---> [percentage of empty values]\n"
+            r += "=" * 88 + "\n"
+
+            for feat, pct_f in part_nan.items():
+                r += f"{feat:30s}  <--->  {pct_f:.2%}\n"
+            print("\n\n%s" % r)
+
+            if do_imputation:
+                # drop columns with nan >= 0.2
+                cols_to_drop = part_nan[part_nan >= 0.2]
+                # print(cols_to_drop)
+                drop_nan_cols = cols_to_drop.keys().tolist()
+                data = data.drop(drop_nan_cols, axis=1)
+                print("Dropped cols with >= 0.2 NAN values : %s" % drop_nan_cols)
+
+                # input the rest with the median and mode
+                cols_to_impute_ = part_nan[part_nan < 0.2].keys()
+                data_no_nan = self._imput_missing_vals(data, cols_to_impute_, group_cols)
+        else:
+            r += "There are none features with NAN values\n"
+
+        print("\n\n%s" % r)
+
+        return data_no_nan
+
+    def _imput_missing_vals(self, df, cols_to_impute, group_cols):
+
+        r = ""
+        r += "=" * 88 + "\n"
+        r += "[Missing values before]  <--- [Feature] ---> [Missing values after]\n"
+        r += "=" * 88 + "\n"
+        r += f"Value imputation using {group_cols} median/mode values \n"
+
+        for col in cols_to_impute:
+            nan_ = df[col].isna().sum() / df.shape[0]
+            df[col] = df.groupby(group_cols)[col].apply(input_value)
+            nan_after = df[col].isna().sum() / df.shape[0]
+            r += f"{nan_:.2%}  <--- {col} --->  {nan_after:.2%}\n"
+        print("\n\n%s" % r)
+
+        return df
 
     def filter_by_std_(self, df, max_var_toDrop):
         # Detect vars with low std
@@ -207,7 +264,6 @@ class PreprocessData:
         df_no_cst = df.drop(constant_cols, axis=1)
 
         return df_no_cst
-
 
     def drop_correlated_feats(self, df, abs_corr_thresh, feat_to_keep=""):
         """Drop features that are too correlated
@@ -302,7 +358,6 @@ class PreprocessData:
 
         return df
 
-
     def select_features(self, df, abs_corr_thresh, feat_to_keep, max_var_toDrop):
         try:
             print("... Selecting features by variance and correlation")
@@ -314,12 +369,11 @@ class PreprocessData:
             drop_cols = [i for i in list(
                 df.columns) if i not in list(df_no_corr.columns)]
             print(
-                "Dropped cols after selecting by variance and correlation : %s" % drop_cols)
+                "Dropped cols after selecting by variance and correlation :\n\n %s" % drop_cols)
 
             return df_no_corr
         except Exception as e:
             raise e
-
 
     def _split_state_county(self, df_x, county_fips_list):
         ## county

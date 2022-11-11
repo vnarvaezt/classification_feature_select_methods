@@ -1,7 +1,7 @@
 import re
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
+import numpy as np
 
 # Tools
 def upper_consistent(df):
@@ -40,27 +40,9 @@ def read_excel(path):
     return df
 
 
-def check_nan(data):
-    nb_lines = data.shape[0]
-    nb_columns = data.shape[1]
 
-    nb_nan = data.isna().sum() / nb_lines
-    part_nan = nb_nan[nb_nan > 0]
 
-    r = ""
-    if not part_nan.empty:
-        r += "There are features with NAN values :\n"
-        r += f"Number of features with NAN = {len(part_nan.keys())}\n"
-        r += f"Number of values with NAN = {sum(data.isna().sum())}\n"
-        r += "=" * 88 + "\n"
-        r += "[Feature] <--- has empty values ---> [percentage of empty values]\n"
-        r += "=" * 88 + "\n"
-        for feat, pct_f in part_nan.items():
-            r += f"{feat:30s}  <--->  {pct_f:.2%}\n"
-        r += "=" * 88 + "\n"
-    else:
-        r += "There are none features with NAN values\n"
-    print("\n\n%s" % r)
+
 
 
 def check_duplicates(data, keys):
@@ -85,3 +67,11 @@ def split_train_test(df, test_size, random_state):
         return X_train_, X_test_
     except Exception as e:
         raise e
+
+
+def input_value(x):
+    if x.dtype == np.number:
+        x_no_na = x.fillna(float(x.median()))
+    else:
+        x_no_na = x.fillna(x.mode()[0])
+    return x_no_na

@@ -2,8 +2,6 @@ from utils.preprocessing_x import PreprocessData
 from utils.tools import (
     standard_name_cols,
     upper_consistent,
-    check_nan,
-    check_duplicates,
     read_excel,
 )
 import pandas as pd
@@ -42,15 +40,27 @@ def transform_data(data_inputs_paths):
         "Lousiana", "LOUISIANA"
     )
     df_education_county = standard_x(
-        df_education, county_fips_list, ["STATE", "AREA_NAME"]
+        df_education, county_fips_list, ["STATE", "AREA_NAME",
+                                         "RURAL_URBAN_CONTINUUM_CODE_2013",
+                                         "URBAN_INFLUENCE_CODE_2013,"
+                                         ]
     )
 
     df_poverty = read_excel(path_poverty_x)
     df_poverty = df_poverty.rename({"Stabr": "STATE"}, axis=1)
-    df_poverty_county = standard_x(df_poverty, county_fips_list, ["STATE", "AREA_NAME"])
+    # duplicated columns
+    cols_to_drop = ["STATE", "AREA_NAME",
+                    "RURAL_URBAN_CONTINUUM_CODE_2003",
+                    "URBAN_INFLUENCE_CODE_2003",
+
+                    ]
+    df_poverty_county = standard_x(
+        df_poverty, county_fips_list, cols_to_drop
+                                   )
 
     df_unemployment = read_excel(path_unemploymnt_x)
     df_unemployment = df_unemployment.rename({"Stabr": "STATE"}, axis=1)
+
     df_unemployment_county = standard_x(
         df_unemployment, county_fips_list, ["STATE", "AREA_NAME"]
     )
@@ -67,7 +77,7 @@ def transform_data(data_inputs_paths):
     )
 
     r = "Join check"
-    r += f"df_population_county: {df_population_county.shape}\n"
+    r += f"\ndf_population_county: {df_population_county.shape}\n"
     r += f"df_education_county: {df_education_county.shape}\n"
     r += f"df_poverty_county: {df_poverty_county.shape}\n"
     r += f"df_unemployment: {df_unemployment_county.shape}\n"
