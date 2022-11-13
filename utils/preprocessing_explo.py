@@ -2,7 +2,7 @@ from sklearn.feature_selection import VarianceThreshold
 import pandas as pd
 import re
 import numpy as np
-from utils.tools import standard_name_cols, upper_consistent, check_nan
+from src.tools.tools import standard_name_cols, upper_consistent, check_nan
 
 def _split_features_categ_conti(df, cat_max_lvls):
     """Tag each column name as Categorical or Continuous features.
