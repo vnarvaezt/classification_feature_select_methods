@@ -4,6 +4,13 @@ import numpy as np
 from sklearn.feature_selection import VarianceThreshold
 from src.tools.tools import input_value
 from conf.config import data_inputs_paths as data_inputs
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    OrdinalEncoder,
+    RobustScaler,
+    StandardScaler,
+)
+
 import sys
 
 class PreprocessData:
@@ -43,9 +50,7 @@ class PreprocessData:
 
         # handle nan
         df_x_no_nan = self.check_nan(df_x_types, True, group_cols=["STATE"])
-        # update numeric columns
-        # numeric_columns = df_x_no_nan.select_dtypes(np.number).columns.tolist()
-        # category_columns = df_x_no_nan.select_dtypes(exclude=np.number).columns.tolist()
+        # transforma categorical variables into dummies
         df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
                                              dummy_na=False)
         df_x_conti_dummies = pd.concat(
@@ -53,9 +58,6 @@ class PreprocessData:
              df_x_no_nan.select_dtypes(np.number)],
             axis=1
         )
-        # TODO: the following line should not longer be needed
-        # fill numeric nan with -99
-        # df_x_no_nan[numeric_columns] = df_x_no_nan[numeric_columns].fillna(-99)
 
         df_x_preprocessed = self.select_features(
             df_x_conti_dummies,
@@ -64,10 +66,12 @@ class PreprocessData:
             max_var_toDrop
         )
 
+        df_x_scaled = self.scale_continuous_features(df_x_preprocessed)
+
         if do_save:
-            df_x_preprocessed.to_csv(path_to_save_x, sep=";", index=True)
+            df_x_scaled.to_csv(path_to_save_x, sep=";", index=True)
             print("saved")
-        return df_x_preprocessed
+        return df_x_scaled
 
     def _split_features_categ_conti(self, df, cat_max_lvls):
 
@@ -429,3 +433,47 @@ class PreprocessData:
         # drop duplicates
         df_x_county = df_x_county.drop_duplicates(["STATE", "AREA_NAME"])
         return df_x_county
+
+        # ***********
+        # * Scaling *
+        # ***********
+
+    def _scaler(self, scaling_method):
+
+        if scaling_method not in ("robust", "minmax", "standard"):
+            msg = "Wrong choosen_scaler value"
+            print(msg)
+            raise ValueError(msg)
+
+        if scaling_method == "robust":
+            # removes median and scales data according to quantile range:
+            scaler = RobustScaler(quantile_range=(25.0, 75.0))
+
+        elif scaling_method == "minmax":
+            scaler = MinMaxScaler(feature_range=(0, 1))
+
+        elif scaling_method == "standard":
+            scaler = StandardScaler(with_mean=True, with_std=True)
+
+        print("Using scaler: {scaler}")
+        return scaler
+
+    def _fit_transform_conti(self, scaler, df, conti_feat):
+        df = df.copy()
+        df.loc[:, conti_feat] = scaler.transform(
+            df[conti_feat].astype(np.float64))
+        return df
+
+    def scale_continuous_features(self, df_x, choosen_scaler="minmax"):
+        print("Scaling using {choosen_scaler}")
+        # Choose the scaler:
+        scaler = self._scaler(choosen_scaler)
+
+        # Data with input dtype float32 were all converted to float64 by sklearn scaler
+        # Find features to scale (only continuous features):
+        conti_feat = df_x.dtypes[df_x.dtypes != np.bool].index
+
+        # Fit the scaler:
+        scaler = scaler.fit(df_x[conti_feat].astype(np.float64))
+
+        return self._fit_transform_conti(scaler, df_x, conti_feat)

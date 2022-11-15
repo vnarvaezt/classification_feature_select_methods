@@ -21,24 +21,26 @@ path_x = data_inputs["path_prepro_x"]
 path_y = data_inputs["path_prepro_y"]
 df_x = pd.read_csv(path_x, sep=";")
 df_y = pd.read_csv(path_y, sep=";")
-
+df_y = df_y[df_y["STATE_NAME"] != "DISTRICT OF COLUMBIA"]
 # join x and y
 df_x_y = pd.merge(df_x,
-                  df_y.reset_index(),
+                  df_y,
                   left_on="FIPS_CODE",
                   right_on="COUNTY_FIPS",
                   how="inner")
+index_cols = ["STATE_NAME",
+              "AREA_NAME"],
 df_x_y = df_x_y.set_index("COUNTY_FIPS", drop=True)
 
 X_prepro = df_x_y.drop("TARGET", axis=1)
 y_prepro = df_x_y[["TARGET"]]
 # split train, test
 X_train, X_test, y_train, y_test = train_test_split(
-    X_prepro.reset_index(),
-    y_prepro.reset_index(),
+    X_prepro,
+    y_prepro,
     test_size=0.2,
     random_state=42,
-    stratify="TARGET"
+    stratify=y_prepro["TARGET"]
     )
 
 
