@@ -28,7 +28,7 @@ def transform_data(data_inputs_paths):
     df_presidential_2020["TARGET"] = np.where(df_presidential_2020["VOTES_GOP"] < df_presidential_2020["VOTES_DEM"], 1, 0)
 
     df_target = df_presidential_2020[["COUNTY_FIPS", "STATE_NAME", "TARGET"]]
-    df_target.to_csv(path_save_y, sep=";")
+    df_target.to_csv(path_save_y, sep=";", index=False)
     # TODO: delete ALASKA results
     # county code list
     county_fips_list = df_target["COUNTY_FIPS"].unique()

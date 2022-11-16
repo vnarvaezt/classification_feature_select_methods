@@ -2,6 +2,7 @@ from conf.config import data_inputs_paths as data_inputs
 from src.preprocessing.preprocessing_x import PreprocessData
 from src.preprocessing.transform_data import transform_data
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
 import pandas as pd
 x_raw = transform_data(data_inputs)
 
@@ -29,10 +30,10 @@ df_x_y = pd.merge(df_x,
                   right_on="COUNTY_FIPS",
                   how="inner")
 index_cols = ["STATE_NAME",
-              "AREA_NAME"],
-df_x_y = df_x_y.set_index("COUNTY_FIPS", drop=True)
+              "AREA_NAME"]
+df_x_y = df_x_y.set_index(["STATE_NAME", "COUNTY_FIPS"], drop=True)
 
-X_prepro = df_x_y.drop("TARGET", axis=1)
+X_prepro = df_x_y.drop(["TARGET", "AREA_NAME"], axis=1)
 y_prepro = df_x_y[["TARGET"]]
 # split train, test
 X_train, X_test, y_train, y_test = train_test_split(
@@ -40,10 +41,27 @@ X_train, X_test, y_train, y_test = train_test_split(
     y_prepro,
     test_size=0.2,
     random_state=42,
-    stratify=y_prepro["TARGET"]
+    stratify=y_prepro["TARGET"] # todo: stratify par state?
     )
 
+clf = LogisticRegression(random_state=0).fit(X_train, y_train)
+y_train_pred = clf.predict(X_train)
 
+proba_train_pred = clf.predict_proba(X_train)
+mean_acc_train = clf.score(X_train, y_train)
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.special import expit
+# and plot the result
+plt.figure(1, figsize=(4, 3))
+plt.clf()
+plt.scatter(X_train.iloc[:, 100].values, y_train, color="black", zorder=20)
+X_test = np.linspace(-5, 10, 300)
+
+loss = expit(X_test * clf.coef_ + clf.intercept_)
+plt.plot(X_test, loss, color="red", linewidth=3)
+plt.savefig('my_plot.png')
 
 #TODO
 # RURAL_URBAN_CONTINUUM_CODE_2013', 'URBAN_INFLUENCE_CODE_2013 sont en double: trouver dans quel df ils ont
