@@ -10,6 +10,7 @@ from sklearn.preprocessing import (
     RobustScaler,
     StandardScaler,
 )
+from conf.config import data_inputs_paths
 
 import sys
 
@@ -17,9 +18,8 @@ class PreprocessData:
     """
     Preprocessing
     """
-
-    def __init__(self):
-        pass
+    def __init__(self, data_inputs):
+        self.path_to_save_x = data_inputs["path_prepro_x"]
 
     def run_preprocessing(self,
                           df_x,
@@ -31,7 +31,6 @@ class PreprocessData:
                           ):
         print(do_save)
 
-        path_to_save_x = data_inputs["path_prepro_x"]
 
         # # Find FIPS column name
         # FIPS_name = df_x.filter(regex='FIPS|fips').columns[0]
@@ -69,7 +68,7 @@ class PreprocessData:
         df_x_scaled = self.scale_continuous_features(df_x_preprocessed)
 
         if do_save:
-            df_x_scaled.to_csv(path_to_save_x, sep=";", index=True)
+            df_x_scaled.to_csv(self.path_to_save_x, sep=";", index=True)
             print("saved")
         return df_x_scaled
 

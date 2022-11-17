@@ -1,9 +1,19 @@
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    recall_score,
+    precision_score
+)
+from sklearn.metrics import confusion_matrix
+
+from sklearn.model_selection import train_test_split
+
 from conf.config import data_inputs_paths as data_inputs
 from src.preprocessing.preprocessing_x import PreprocessData
 from src.preprocessing.transform_data import transform_data
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-import pandas as pd
+
 x_raw = transform_data(data_inputs)
 
 
@@ -22,7 +32,6 @@ path_x = data_inputs["path_prepro_x"]
 path_y = data_inputs["path_prepro_y"]
 df_x = pd.read_csv(path_x, sep=";")
 df_y = pd.read_csv(path_y, sep=";")
-df_y = df_y[df_y["STATE_NAME"] != "DISTRICT OF COLUMBIA"]
 # join x and y
 df_x_y = pd.merge(df_x,
                   df_y,
@@ -44,11 +53,63 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y_prepro["TARGET"] # todo: stratify par state?
     )
 
-clf = LogisticRegression(random_state=0).fit(X_train, y_train)
+print(y_train.TARGET.value_counts(normalize=True))
+# define class weights
+w = {0:2, 1:8}
+
+clf = LogisticRegression(random_state=0,  class_weight=w).fit(X_train, y_train["TARGET"])
 y_train_pred = clf.predict(X_train)
 
 proba_train_pred = clf.predict_proba(X_train)
-mean_acc_train = clf.score(X_train, y_train)
+mean_acc_train = clf.score(X_train, y_train["TARGET"])
+y_train.reset_index(drop=True, inplace=True)
+
+accuracy_score(y_train.iloc[:, 0].values,
+               y_train_pred)
+f1_score(y_train.iloc[:, 0].values, y_train_pred)
+recall_score(y_train.iloc[:, 0].values, y_train_pred)
+
+precision_score(y_train.iloc[:, 0].values, y_train_pred)
+
+confusion_matrix_logit = confusion_matrix(y_train.iloc[:, 0].values, y_train_pred)
+import plotly.figure_factory as ff
+# set up figure
+fig = ff.create_annotated_heatmap(z, x=x, y=y, annotation_text=z_text, colorscale='Viridis')
+
+# add title
+fig.update_layout(title_text='<i><b>Confusion matrix</b></i>',
+                  #xaxis = dict(title='x'),
+                  #yaxis = dict(title='x')
+                 )
+
+# add custom xaxis title
+fig.add_annotation(dict(font=dict(color="black",size=14),
+                        x=0.5,
+                        y=-0.15,
+                        showarrow=False,
+                        text="Predicted value",
+                        xref="paper",
+                        yref="paper"))
+
+# add custom yaxis title
+fig.add_annotation(dict(font=dict(color="black",size=14),
+                        x=-0.35,
+                        y=0.5,
+                        showarrow=False,
+                        text="Real value",
+                        textangle=-90,
+                        xref="paper",
+                        yref="paper"))
+
+# adjust margins to make room for yaxis title
+fig.update_layout(margin=dict(t=50, l=200))
+
+# add colorbar
+fig['data'][0]['showscale'] = True
+fig.show()
+
+
+
 
 import matplotlib.pyplot as plt
 import numpy as np
