@@ -61,6 +61,8 @@ def transform_data(data_inputs_paths):
     cols_to_drop = ["STATE", "AREA_NAME",
                     "RURAL_URBAN_CONTINUUM_CODE_2003",
                     "URBAN_INFLUENCE_CODE_2003",
+                    "RURAL_URBAN_CONTINUUM_CODE_2013",
+                    "URBAN_INFLUENCE_CODE_2013"
                     ]
 
     #"RURAL_URBAN_CONTINUUM_CODE_2013", "URBAN_INFLUENCE_CODE_2013,"

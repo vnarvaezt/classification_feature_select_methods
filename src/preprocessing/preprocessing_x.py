@@ -27,9 +27,10 @@ class PreprocessData:
                           abs_corr_thresh=0.90,
                           feat_to_keep="",
                           max_var_toDrop=0.01,
-                          do_save=False
+                          do_save=False,
+                          type_dummies=np.bool
                           ):
-        print(do_save)
+        print("Save mode: %s" % do_save)
 
 
         # # Find FIPS column name
@@ -51,6 +52,7 @@ class PreprocessData:
         df_x_no_nan = self.check_nan(df_x_types, True, group_cols=["STATE"])
         # transforma categorical variables into dummies
         df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
+                                             type_dummies,
                                              dummy_na=False)
         df_x_conti_dummies = pd.concat(
            [df_x_dummies,
@@ -151,9 +153,11 @@ class PreprocessData:
             print("\n Features with < 300 unique values")
             print(filtered_rem)
             print(filtered_rem.pct_change())
-            feat_cutoff = filtered_rem.pct_change().idxmax()
+            feat_cutoff = filtered_rem.pct_change().idxmax(skipna=True)
+
             auto_threshold_after = filtered_rem[feat_cutoff]
-            auto_threshold = filtered_rem[filtered_rem < auto_threshold_after][-1]
+            auto_threshold = filtered_rem[filtered_rem <= auto_threshold_after][-1]
+
 
             # Test to whether use the Automatic Threshold or cat_max_lvls:
             if auto_threshold <= cat_max_lvls:
@@ -211,7 +215,7 @@ class PreprocessData:
 
         return df_x_concat
 
-    def categ_to_dummies(self, df_x_categ_, dummy_na=True):
+    def categ_to_dummies(self, df_x_categ_, type_dummies, dummy_na=True, ):
         df_x_dummies = pd.get_dummies(df_x_categ_,
                                       columns=list(df_x_categ_.columns),
                                       drop_first=True,
@@ -220,13 +224,13 @@ class PreprocessData:
                                       # so for all the categorical dummy features, *
                                       # no NaN will remain
                                       dummy_na=dummy_na,
-                                      dtype=np.bool
+                                      dtype=type_dummies
                                       )
         # Sanity Checks after dummization:
         assert not df_x_dummies.isna().values.any(), "NaN left (Something went wrong)"
-        assert all(
-            [_dtype == np.dtype(bool) for _dtype in list(df_x_dummies.dtypes)]
-        ), "Not all the features are dtype=bool"
+        # assert all(
+        #     [_dtype == np.dtype(bool) for _dtype in list(df_x_dummies.dtypes)]
+        # ), "Not all the features are dtype=bool"
 
         return df_x_dummies
 
