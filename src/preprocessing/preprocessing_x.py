@@ -50,15 +50,20 @@ class PreprocessData:
 
         # handle nan
         df_x_no_nan = self.check_nan(df_x_types, True, group_cols=["STATE"])
-        # transforma categorical variables into dummies
-        df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
+        # if any transform categorical variables into dummies
+        categ_cols = df_x_no_nan.select_dtypes("category").columns
+        if len(categ_cols) > 0:
+            df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
                                              type_dummies,
                                              dummy_na=False)
-        df_x_conti_dummies = pd.concat(
-           [df_x_dummies,
-             df_x_no_nan.select_dtypes(np.number)],
-            axis=1
-        )
+            df_x_conti_dummies = pd.concat(
+               [df_x_dummies,
+                 df_x_no_nan.select_dtypes(np.number)],
+                axis=1
+            )
+        else:
+            df_x_conti_dummies = df_x_no_nan
+
 
         df_x_preprocessed = self.select_features(
             df_x_conti_dummies,

@@ -51,8 +51,16 @@ def transform_data(data_inputs_paths):
     df_education["Area name"] = df_education["Area name"].replace(
         "Lousiana", "LOUISIANA"
     )
+
+    cols_to_drop_educ = [
+        "STATE", "AREA_NAME"
+        "2003_RURAL_URBAN_CONTINUUM_CODE",
+        "2003_URBAN_INFLUENCE_CODE",
+        "2013_RURAL_URBAN_CONTINUUM_CODE",
+        "2013_URBAN_INFLUENCE_CODE"
+    ]
     df_education_county = standard_x(
-        df_education, county_fips_list, ["STATE", "AREA_NAME"]
+        df_education, county_fips_list, cols_to_drop_educ
     )
 
     df_poverty = read_excel(path_poverty_x)

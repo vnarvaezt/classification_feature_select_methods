@@ -70,6 +70,7 @@ def split_train_test(df, test_size, random_state):
 
 
 def input_value(x):
+
     if x.dtype == np.number:
         x_no_na = x.fillna(float(x.median()))
     else:
