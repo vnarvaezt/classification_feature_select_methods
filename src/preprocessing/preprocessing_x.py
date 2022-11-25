@@ -4,22 +4,19 @@ import numpy as np
 from sklearn.feature_selection import VarianceThreshold
 from src.tools.tools import input_value
 from conf.config import data_inputs_paths as data_inputs
-from sklearn.preprocessing import (
-    MinMaxScaler,
-    OrdinalEncoder,
-    RobustScaler,
-    StandardScaler,
-)
+
 from conf.config import data_inputs_paths
 
 import sys
+
 
 class PreprocessData:
     """
     Preprocessing
     """
-    def __init__(self, data_inputs):
-        self.path_to_save_x = data_inputs["path_prepro_x"]
+
+    def __init__(self, save_x_to):
+        self.path_to_save_x = save_x_to["path_prepro_x"]
 
     def run_preprocessing(self,
                           df_x,
@@ -32,38 +29,30 @@ class PreprocessData:
                           ):
         print("Save mode: %s" % do_save)
 
-
-        # # Find FIPS column name
-        # FIPS_name = df_x.filter(regex='FIPS|fips').columns[0]
-        # df_x = df_x.rename(columns={FIPS_name: "FIPS_CODE"})
-        #
-        # df_x.columns = standard_name_cols(df_x.columns)
-        # df_x[["STATE", "AREA_NAME"]] = upper_consistent(df_x[["STATE", "AREA_NAME"]])
-
         # fix data types
         object_columns = ["STATE", "AREA_NAME", "FIPS_CODE"]
         numeric_columns = [col for col in df_x.columns if col not in object_columns]
         df_x[numeric_columns] = df_x[numeric_columns].astype("Float64")
 
-        # df with correct types
+        # split into categ and numeric according to the nb of unique values
         df_x_types = self._split_categ_conti(df_x, cat_max_lvls)
 
-        # handle nan
+        # handle nan if any
         df_x_no_nan = self.check_nan(df_x_types, True, group_cols=["STATE"])
-        # if any transform categorical variables into dummies
+
+        # transform categorical variables into dummies
         categ_cols = df_x_no_nan.select_dtypes("category").columns
         if len(categ_cols) > 0:
             df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
-                                             type_dummies,
-                                             dummy_na=False)
+                                                 type_dummies,
+                                                 dummy_na=False)
             df_x_conti_dummies = pd.concat(
-               [df_x_dummies,
+                [df_x_dummies,
                  df_x_no_nan.select_dtypes(np.number)],
                 axis=1
             )
         else:
             df_x_conti_dummies = df_x_no_nan
-
 
         df_x_preprocessed = self.select_features(
             df_x_conti_dummies,
@@ -72,12 +61,10 @@ class PreprocessData:
             max_var_toDrop
         )
 
-        df_x_scaled = self.scale_continuous_features(df_x_preprocessed)
-
         if do_save:
-            df_x_scaled.to_csv(self.path_to_save_x, sep=";", index=True)
+            df_x_preprocessed.to_csv(self.path_to_save_x, sep=";", index=True)
             print("saved")
-        return df_x_scaled
+        return df_x_preprocessed
 
     def _split_features_categ_conti(self, df, cat_max_lvls):
 
@@ -157,12 +144,11 @@ class PreprocessData:
             filtered_rem = distinct_remain[distinct_remain < 300]
             print("\n Features with < 300 unique values")
             print(filtered_rem)
-            print(filtered_rem.pct_change())
+
             feat_cutoff = filtered_rem.pct_change().idxmax(skipna=True)
 
             auto_threshold_after = filtered_rem[feat_cutoff]
             auto_threshold = filtered_rem[filtered_rem <= auto_threshold_after][-1]
-
 
             # Test to whether use the Automatic Threshold or cat_max_lvls:
             if auto_threshold <= cat_max_lvls:
@@ -170,7 +156,7 @@ class PreprocessData:
             else:
                 thresh = cat_max_lvls
 
-            print(f"The threshold for distinct values is {thresh}")
+            print(f"The threshold of distinct values to consider as categ is {thresh}")
 
             # 2.2.3.1) few distinct values (--> CATEGORICAL):
             col_numb_remain_few_dist = distinct_remain[
@@ -220,7 +206,7 @@ class PreprocessData:
 
         return df_x_concat
 
-    def categ_to_dummies(self, df_x_categ_, type_dummies, dummy_na=True, ):
+    def categ_to_dummies(self, df_x_categ_, type_dummies, dummy_na=True):
         df_x_dummies = pd.get_dummies(df_x_categ_,
                                       columns=list(df_x_categ_.columns),
                                       drop_first=True,
@@ -239,10 +225,11 @@ class PreprocessData:
 
         return df_x_dummies
 
-
-
-    def check_nan(self, data, do_imputation=False, group_cols=[]):
+    def check_nan(self, data, do_imputation=False, group_cols=None):
+        if group_cols is None:
+            group_cols = []
         nb_lines = data.shape[0]
+        assert isinstance(nb_lines, object)
         nb_nan = data.isna().sum() / nb_lines
         part_nan = nb_nan[nb_nan > 0]
 
@@ -258,17 +245,17 @@ class PreprocessData:
             for feat, pct_f in part_nan.items():
                 r += f"{feat:30s}  <--->  {pct_f:.2%}\n"
             print("\n\n%s" % r)
-
+            r = ""
             if do_imputation:
-                # drop columns with nan >= 0.2
-                cols_to_drop = part_nan[part_nan >= 0.2]
+                # drop columns with nan >= 0.7
+                cols_to_drop = part_nan[part_nan >= 0.7]
                 # print(cols_to_drop)
                 drop_nan_cols = cols_to_drop.keys().tolist()
                 data = data.drop(drop_nan_cols, axis=1)
-                print("Dropped cols with >= 0.2 NAN values : %s" % drop_nan_cols)
+                print("Dropped cols with >= 0.7 NAN values : %s" % drop_nan_cols)
 
                 # input the rest with the median and mode
-                cols_to_impute_ = part_nan[part_nan < 0.2].keys()
+                cols_to_impute_ = part_nan[part_nan < 0.7].keys()
                 data_no_nan = self._imput_missing_vals(data, cols_to_impute_, group_cols)
         else:
             r += "There are none features with NAN values\n"
@@ -418,70 +405,3 @@ class PreprocessData:
             return df_no_corr
         except Exception as e:
             raise e
-
-    def _split_state_county(self, df_x, county_fips_list):
-        ## county
-        df_x_county = df_x[df_x["FIPS_CODE"].isin(county_fips_list)]
-        # Check if all counties were found
-        county_found = df_x_county["FIPS_CODE"].unique()
-        ## Missing codes correspond to Alaska : Unlike other states within the United States, Alaska does not administer its presidential elections at the county-level but rather at the lower chamber legislative district, or the House District
-        ## For now, I drop Alaska
-        r = ""
-        if len(county_found) != len(county_fips_list):
-            county_n_found = [county for county in county_fips_list if county not in county_found]
-            r += "=" * 88 + "\n"
-            r += f"Nb of counties found: {len(county_found)} / {len(county_fips_list)}\n"
-            r += f"Missing county(ies): {county_n_found}\n"
-            r += "=" * 88 + "\n"
-        else:
-            r += "All county fips found\n"
-            r += "=" * 88 + "\n"
-        print("\n %s" % r)
-
-        # drop duplicates
-        df_x_county = df_x_county.drop_duplicates(["STATE", "AREA_NAME"])
-        return df_x_county
-
-        # ***********
-        # * Scaling *
-        # ***********
-
-    def _scaler(self, scaling_method):
-
-        if scaling_method not in ("robust", "minmax", "standard"):
-            msg = "Wrong choosen_scaler value"
-            print(msg)
-            raise ValueError(msg)
-
-        if scaling_method == "robust":
-            # removes median and scales data according to quantile range:
-            scaler = RobustScaler(quantile_range=(25.0, 75.0))
-
-        elif scaling_method == "minmax":
-            scaler = MinMaxScaler(feature_range=(0, 1))
-
-        elif scaling_method == "standard":
-            scaler = StandardScaler(with_mean=True, with_std=True)
-
-        print("Using scaler: {scaler}")
-        return scaler
-
-    def _fit_transform_conti(self, scaler, df, conti_feat):
-        df = df.copy()
-        df.loc[:, conti_feat] = scaler.transform(
-            df[conti_feat].astype(np.float64))
-        return df
-
-    def scale_continuous_features(self, df_x, choosen_scaler="minmax"):
-        print("Scaling using {choosen_scaler}")
-        # Choose the scaler:
-        scaler = self._scaler(choosen_scaler)
-
-        # Data with input dtype float32 were all converted to float64 by sklearn scaler
-        # Find features to scale (only continuous features):
-        conti_feat = df_x.dtypes[df_x.dtypes != np.bool].index
-
-        # Fit the scaler:
-        scaler = scaler.fit(df_x[conti_feat].astype(np.float64))
-
-        return self._fit_transform_conti(scaler, df_x, conti_feat)

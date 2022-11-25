@@ -39,12 +39,6 @@ def read_excel(path):
 
     return df
 
-
-
-
-
-
-
 def check_duplicates(data, keys):
     df_dup = data[data.duplicated(subset=keys, keep=False)]
     r = ""
@@ -56,17 +50,6 @@ def check_duplicates(data, keys):
 
     print("\n%s" % r)
 
-
-def split_train_test(df, test_size, random_state):
-    try:
-        print("Splitting into train and test")
-        X_train_, X_test_ = train_test_split(
-            df, test_size=test_size,
-            random_state=random_state, shuffle=True
-        )
-        return X_train_, X_test_
-    except Exception as e:
-        raise e
 
 
 def input_value(x):

@@ -15,3 +15,7 @@ data_inputs_paths = {
     "path_prepro_y": f"{DATA_DIR}/prepro_y.csv"
 }
 
+model_config = {
+    "class_weight": "balanced", #None
+
+}
