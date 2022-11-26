@@ -17,5 +17,8 @@ data_inputs_paths = {
 
 model_config = {
     "class_weight": "balanced", #None
-
+    "reduce_features": "boruta",
+    "models_for_pred": ["XGBClassifier", "RandomForestClassifier"],
+    "seed": 1234
 }
+

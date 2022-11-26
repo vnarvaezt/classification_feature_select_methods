@@ -37,7 +37,7 @@ class SplitandScale:
     # Train / Test split:
     def split_x_y(self, X, y):
         df_x_train, df_x_test, df_y_train, df_y_test = train_test_split(
-            X, y, test_size=0.2, stratify=y["TARGET"]
+            X, y, test_size=0.2, stratify=y["TARGET"], random_state=42
         )
         print(f"\n df_x_train = {df_x_train.shape} / df_x_test = {df_x_test.shape}")
         print(f"\n df_y_train = {df_y_train.shape} / df_y_test = {df_y_test.shape}")
