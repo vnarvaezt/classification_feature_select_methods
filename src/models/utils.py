@@ -20,19 +20,22 @@ def evaluate_model(model, X, y, seed):
     return scores
 
 
-def calculate_precision_recall_curve(model, trainX, trainy, testX, testy):
+def calculate_precision_recall_curve(model, trainX, trainy, testX, testy, alias):
     # metrics
     md_precision_train, md_recall_train, md_f1_train, md_auc_train = _metrics(model, trainX, trainy)
     md_precision_test, md_recall_test, md_f1_test, md_auc_test = _metrics(model, testX, testy)
 
-    print('\n >>f1 score: %.3f (train) %.3f (test)' % (md_f1_train, md_f1_test))
+    print('>>f1 score: %.3f (train) %.3f (test)' % (md_f1_train, md_f1_test))
     print('>>auc: %.3f (train) %.3f (test)' % (md_auc_train, md_auc_test))
 
     # plot the precision-recall curves
     no_skill = len(testy[testy == 1]) / len(testy)
-    pyplot.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
-    pyplot.plot(md_recall_train, md_precision_train, marker='.', label='train')
-    pyplot.plot(md_recall_test, md_precision_test, marker='.', label='test')
+    if alias == 'logit_baseLine':
+        pyplot.plot([0, 1], [no_skill, no_skill], linestyle='--', label='No Skill')
+    pyplot.plot(md_recall_train, md_precision_train, marker='.', label=f'{alias} train')
+    pyplot.plot(md_recall_test, md_precision_test, marker='.', label=f'{alias} test')
+    title_graph = str(alias).replace("_", " ")
+    pyplot.title(f"Precision and recall {title_graph}")
     # axis labels
     pyplot.xlabel('Recall')
     pyplot.ylabel('Precision')
@@ -40,8 +43,7 @@ def calculate_precision_recall_curve(model, trainX, trainy, testX, testy):
     pyplot.legend()
     # show the plot
     pyplot.show()
-
-    return (pyplot)
+    pyplot.savefig(f"images/precison_recall_cv_{alias}.png")
 
 
 def _metrics(model, X, y):
@@ -75,8 +77,11 @@ def make_confusion_matrix(y_true, y_pred, alias, labels=None):
     fig = ff.create_annotated_heatmap(z, x=x, y=y, annotation_text=z_text, colorscale='RdBu')
 
     # add title
-    fig.update_layout(title_text='<i><b>Confusion matrix</b></i>',
+    graph_title = str(alias).replace('_', ' ')
+    fig.update_layout(title_text=f'<i><b>Confusion matrix {graph_title}</b></i>',
                       yaxis={"title": "Real value"},
+                      width=800,
+                      height=400
                       )
 
     # add custom xaxis title
@@ -101,15 +106,14 @@ def make_confusion_matrix(y_true, y_pred, alias, labels=None):
 
     # add colorbar
     fig['data'][0]['showscale'] = True
-    fig.write_html(f"images/confusion_matrix{alias}.html")
-    fig.show()
+    fig.write_html(f"images/confusion_mx_{alias}.html")
 
 
 ####################
 # feature selection #
 ####################
 # SélectionneZ les k variables numériques les plus liées à la cible
-def feature_selection_KBest(X, y, nb_features) -> list:
+def feature_selection_kbest(X, y, nb_features) -> list:
     num_cols = X.select_dtypes(include=np.number).columns.tolist()
     # sur le base du critère d'information mutuelle.
     mic_selector = SelectKBest(score_func=mutual_info_classif, k=nb_features)
@@ -123,8 +127,8 @@ def feature_selection_KBest(X, y, nb_features) -> list:
     return mic_features
 
 
-def compute_RFECV(X, y, estimator, min_features):
-    # Instanciation de la RFECV()
+def compute_rfecv(X, y, estimator, min_features):
+    # Instantiate RFECV()
     rfecv_selector = RFECV(estimator=estimator,
                            min_features_to_select=min_features,
                            scoring=make_scorer(f1_score),
@@ -143,19 +147,19 @@ def compute_RFECV(X, y, estimator, min_features):
     fig = px.line(y=mean_test_f1_score,
                   x=range(min_features_to_select, len(mean_test_f1_score) + min_features_to_select),
                   labels={
-                      "x": "Nombre de variables sélectionnées",
-                      "y": "Score moyen de cross-validaion"
+                      "x": "Number of selected variables",
+                      "y": "Median score using cross-validaion"
                   },
-                  title=f"Résultats RFECV avec {rfecv_selector.cv} k-fold"
+                  title=f"Results RFECV with {rfecv_selector.cv} k-fold"
                   )
     fig.add_vline(x=n_features_selected, line_width=3, line_dash="dash", line_color="#011C5D")
     fig.add_vrect(x0=30, x1=n_features_in_rfecv, line_width=0, fillcolor="#D38F00", opacity=0.2)
     if not os.path.exists("images"):
         os.mkdir("images")
-    fig.show()
+    #fig.show()
     fig.write_image("images/RFE_random_forest.png")
 
-    # Récupérer la liste des variables issues de RFECV et transformer là en liste
+    # recover variables list from RFECV
     rfe_features = rfecv_selector.get_feature_names_out().tolist()
     return rfe_features
 
@@ -180,10 +184,10 @@ def feature_selection(fs_method, Xtrain, ytrain, estimator) -> list:
 
     if fs_method == "kbest":
         # removes median and scales data according to quantile range:
-        features = feature_selection_KBest(Xtrain, ytrain, estimator)
+        features = feature_selection_kbest(Xtrain, ytrain, estimator)
 
     elif fs_method == "rfecv":
-        features = compute_RFECV(Xtrain, ytrain, estimator=estimator, min_features=20)
+        features = compute_rfecv(Xtrain, ytrain, estimator=estimator, min_features=20)
 
     elif fs_method == "boruta":
         features = compute_boruta(Xtrain, ytrain, estimator, n_features="auto")

@@ -1,5 +1,4 @@
 import numpy as np
-from conf.config import model_config
 from src.models.utils import (
     feature_selection,
     make_confusion_matrix,
@@ -19,22 +18,7 @@ from sklearn.ensemble import (
 from imblearn.ensemble import BalancedBaggingClassifier
 from xgboost import XGBClassifier
 from sklearn.svm import SVC
-
-from sklearn.metrics import (
-    accuracy_score,
-    f1_score,
-    recall_score,
-    precision_score
-)
-
-import sys
-
-from conf.config import data_inputs_paths as data_inputs
-from src.models.split_scale import SplitandScale
-ss = SplitandScale(data_inputs)
-X_train, X_test, y_train, y_test = ss.run_split_scale()
-md = ModelData(X_train, X_test, y_train["TARGET"], y_test['TARGET'], model_config )
-md.run_modelling()
+from sklearn.metrics import f1_score
 
 
 class ModelData:
@@ -66,15 +50,10 @@ class ModelData:
         print("Logistic classification: F1 score (train with k fold) %.3f" % mean(lr_scores))
 
         calculate_precision_recall_curve(
-            lr,
-            X_train,
-            y_train,
-            X_test,
-            y_test
+            lr, X_train, y_train, X_test, y_test, "logit_baseLine"
         )
 
-        make_confusion_matrix(y_test, lr.predict(X_test), "conf_mx_testset_logit_baseline")
-
+        make_confusion_matrix(y_test, lr.predict(X_test), "testset_logit_baseline")
 
     def run_modelling(self):
 
@@ -102,6 +81,7 @@ class ModelData:
             # fit model
             fit_m = self.fit_model(self.Xtrain[explanatory_vars], self.ytrain, hp[model_name])
             # compute metrics
+            print(f"\n ...Training model: %s" % model_name)
             scores_train = evaluate_model(
                 fit_m, self.Xtrain[explanatory_vars], self.ytrain, self.seed
             )
@@ -111,15 +91,16 @@ class ModelData:
             results_train.append(scores_train)
             results_test.append(F1_test)
             names.append(model_name)
-            print('>%s %.3f (train kfold) %.3f (test)' % (model_name, mean(scores_train), F1_test))
+            print('f1_score: %.3f (train, using RepeatedStratifiedKFold), %.3f (test)' % (mean(scores_train), F1_test))
 
             calculate_precision_recall_curve(
-                fit_m,
-                self.Xtrain[explanatory_vars],
+                fit_m, self.Xtrain[explanatory_vars],
                 self.ytrain,
                 self.Xtest[explanatory_vars],
-                self.ytest
+                self.ytest,
+                model_name
             )
+            make_confusion_matrix(self.y_test, y_pred_test, f"testset_{model_name}")
 
     def model_hyperparameters(self, weight):
         models = {
@@ -168,7 +149,6 @@ class ModelData:
         }
 
         return models
-
 
     def fit_model(self, X, y, estimator, **kwargs):
         model = Pipeline(
