@@ -1,18 +1,14 @@
 import os
+
 import numpy as np
-from sklearn.metrics import (
-    make_scorer,
-    f1_score,
-    precision_recall_curve,
-    confusion_matrix,
-)
-from sklearn.metrics import auc
 import plotly.express as px
 import plotly.figure_factory as ff
-from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
-from sklearn.feature_selection import RFECV, SelectKBest, mutual_info_classif
-from matplotlib import pyplot
 from boruta import BorutaPy
+from matplotlib import pyplot
+from sklearn.feature_selection import RFECV, SelectKBest, mutual_info_classif
+from sklearn.metrics import (auc, confusion_matrix, f1_score, make_scorer,
+                             precision_recall_curve)
+from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
 
 
 ####################
@@ -129,6 +125,7 @@ def make_confusion_matrix(y_true, y_pred, alias, labels=None):
     # add colorbar
     fig["data"][0]["showscale"] = True
     fig.write_html(f"images/confusion_mx_{alias}.html")
+    fig.show()
 
 
 ####################

@@ -1,13 +1,13 @@
-import pandas as pd
 import re
+import sys
+
 import numpy as np
+import pandas as pd
 from sklearn.feature_selection import VarianceThreshold
-from src.tools.tools import input_value
-from conf.config import data_inputs_paths as data_inputs
 
 from conf.config import data_inputs_paths
-
-import sys
+from conf.config import data_inputs_paths as data_inputs
+from src.tools.tools import input_value
 
 
 class PreprocessData:
@@ -18,15 +18,16 @@ class PreprocessData:
     def __init__(self, save_x_to):
         self.path_to_save_x = save_x_to["path_prepro_x"]
 
-    def run_preprocessing(self,
-                          df_x,
-                          cat_max_lvls=10,
-                          abs_corr_thresh=0.90,
-                          feat_to_keep="",
-                          max_var_toDrop=0.01,
-                          do_save=False,
-                          type_dummies=np.bool
-                          ):
+    def run_preprocessing(
+        self,
+        df_x,
+        cat_max_lvls=10,
+        abs_corr_thresh=0.90,
+        feat_to_keep="",
+        max_var_toDrop=0.01,
+        do_save=False,
+        type_dummies=np.bool,
+    ):
         print("Save mode: %s" % do_save)
 
         # fix data types
@@ -43,22 +44,17 @@ class PreprocessData:
         # transform categorical variables into dummies
         categ_cols = df_x_no_nan.select_dtypes("category").columns
         if len(categ_cols) > 0:
-            df_x_dummies = self.categ_to_dummies(df_x_no_nan.select_dtypes("category"),
-                                                 type_dummies,
-                                                 dummy_na=False)
+            df_x_dummies = self.categ_to_dummies(
+                df_x_no_nan.select_dtypes("category"), type_dummies, dummy_na=False
+            )
             df_x_conti_dummies = pd.concat(
-                [df_x_dummies,
-                 df_x_no_nan.select_dtypes(np.number)],
-                axis=1
+                [df_x_dummies, df_x_no_nan.select_dtypes(np.number)], axis=1
             )
         else:
             df_x_conti_dummies = df_x_no_nan
 
         df_x_preprocessed = self.select_features(
-            df_x_conti_dummies,
-            abs_corr_thresh,
-            feat_to_keep,
-            max_var_toDrop
+            df_x_conti_dummies, abs_corr_thresh, feat_to_keep, max_var_toDrop
         )
 
         if do_save:
@@ -119,8 +115,7 @@ class PreprocessData:
         ]
 
         # 2.2.2) regex for continuous (--> CONTINUOUS):
-        pattern_quanti = (
-            "PERCENT|POP|ESTIMATES|CENSUS|ALL|BACHELOR|SCHOOL|COLLEGE")
+        pattern_quanti = "PERCENT|POP|ESTIMATES|CENSUS|ALL|BACHELOR|SCHOOL|COLLEGE"
         col_numb_rgx_quanti = [
             col
             for col in col_numb
@@ -129,9 +124,7 @@ class PreprocessData:
 
         # 2.2.3) remaining features:
         col_numb_remain = list(
-            set(col_numb)
-            - set(col_numb_rgx_quali)
-            - set(col_numb_rgx_quanti)
+            set(col_numb) - set(col_numb_rgx_quali) - set(col_numb_rgx_quanti)
         )
 
         if col_numb_remain:
@@ -161,18 +154,16 @@ class PreprocessData:
             # 2.2.3.1) few distinct values (--> CATEGORICAL):
             col_numb_remain_few_dist = distinct_remain[
                 distinct_remain <= thresh
-                ].index.tolist()
+            ].index.tolist()
 
             # 2.2.3.2) large distinct values (--> CONTINUOUS):
             col_numb_remain_large_dist = distinct_remain[
                 distinct_remain > thresh
-                ].index.tolist()
+            ].index.tolist()
 
             # FINAL : Group all Categorical & Group all Continuous:
             col_categ = col_object + col_numb_rgx_quali + col_numb_remain_few_dist
-            col_conti = (
-                    col_numb_rgx_quanti + col_numb_remain_large_dist
-            )
+            col_conti = col_numb_rgx_quanti + col_numb_remain_large_dist
         else:
             # FINAL : Group all Categorical & Group all Continuous:
             col_categ = col_object + col_numb_rgx_quali
@@ -207,16 +198,17 @@ class PreprocessData:
         return df_x_concat
 
     def categ_to_dummies(self, df_x_categ_, type_dummies, dummy_na=True):
-        df_x_dummies = pd.get_dummies(df_x_categ_,
-                                      columns=list(df_x_categ_.columns),
-                                      drop_first=True,
-                                      # with option "dummy_na=True",
-                                      # all the NaN will be encoded as a distinct category
-                                      # so for all the categorical dummy features, *
-                                      # no NaN will remain
-                                      dummy_na=dummy_na,
-                                      dtype=type_dummies
-                                      )
+        df_x_dummies = pd.get_dummies(
+            df_x_categ_,
+            columns=list(df_x_categ_.columns),
+            drop_first=True,
+            # with option "dummy_na=True",
+            # all the NaN will be encoded as a distinct category
+            # so for all the categorical dummy features, *
+            # no NaN will remain
+            dummy_na=dummy_na,
+            dtype=type_dummies,
+        )
         # Sanity Checks after dummization:
         assert not df_x_dummies.isna().values.any(), "NaN left (Something went wrong)"
         # assert all(
@@ -256,7 +248,9 @@ class PreprocessData:
 
                 # input the rest with the median and mode
                 cols_to_impute_ = part_nan[part_nan < 0.7].keys()
-                data_no_nan = self._imput_missing_vals(data, cols_to_impute_, group_cols)
+                data_no_nan = self._imput_missing_vals(
+                    data, cols_to_impute_, group_cols
+                )
         else:
             r += "There are none features with NAN values\n"
             data_no_nan = data
@@ -287,8 +281,11 @@ class PreprocessData:
         constant_filter = VarianceThreshold(max_var_toDrop)
         constant_filter.fit(df)
 
-        constant_cols = [column for column in df.columns
-                         if column not in df.columns[constant_filter.get_support()]]
+        constant_cols = [
+            column
+            for column in df.columns
+            if column not in df.columns[constant_filter.get_support()]
+        ]
 
         print("Columns with std less than %s: %s" % (max_var_toDrop, constant_cols))
 
@@ -361,11 +358,16 @@ class PreprocessData:
 
         # List and drop all the features to remove:
         if not feat_to_keep:
-            feat_to_drop = {feat for feat_set in corr_feat.values()
-                            for feat in feat_set}
+            feat_to_drop = {
+                feat for feat_set in corr_feat.values() for feat in feat_set
+            }
         else:
-            feat_to_drop = {feat for feat_set in corr_feat.values()
-                            for feat in feat_set if feat not in feat_to_keep}
+            feat_to_drop = {
+                feat
+                for feat_set in corr_feat.values()
+                for feat in feat_set
+                if feat not in feat_to_keep
+            }
 
         df = df.drop(columns=feat_to_drop)
 
@@ -395,12 +397,16 @@ class PreprocessData:
 
             df_no_cst = self.filter_by_std_(df, max_var_toDrop)
             df_no_corr = self.drop_correlated_feats(
-                df_no_cst, abs_corr_thresh, feat_to_keep)
+                df_no_cst, abs_corr_thresh, feat_to_keep
+            )
 
-            drop_cols = [i for i in list(
-                df.columns) if i not in list(df_no_corr.columns)]
+            drop_cols = [
+                i for i in list(df.columns) if i not in list(df_no_corr.columns)
+            ]
             print(
-                "Dropped cols after selecting by variance and correlation :\n\n %s" % drop_cols)
+                "Dropped cols after selecting by variance and correlation :\n\n %s"
+                % drop_cols
+            )
 
             return df_no_corr
         except Exception as e:

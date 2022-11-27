@@ -1,15 +1,14 @@
 # Package de manipulation des tableaux et dataframe
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 # Typing des fonctions
 from typing import List, Optional
-import plotly.express as px
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.express as px
 # Package pour analyse statistique
 import scipy.stats as ss
+import seaborn as sns
 
 
 def check_nan(data):

@@ -1,7 +1,9 @@
 import re
+
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import numpy as np
+
 
 # Tools
 def upper_consistent(df):
@@ -20,9 +22,10 @@ def standard_name_cols(data_columns):
 def read_excel(path):
 
     with open(path, mode="rb") as excel_file:
-        _excel_file = pd.read_excel(excel_file,
-                                    # converters={'FIPS Code': str}
-                                    )
+        _excel_file = pd.read_excel(
+            excel_file,
+            # converters={'FIPS Code': str}
+        )
     print(f"\n========== File name {excel_file}\n")
     print(_excel_file.columns[0])
 
@@ -39,6 +42,7 @@ def read_excel(path):
 
     return df
 
+
 def check_duplicates(data, keys):
     df_dup = data[data.duplicated(subset=keys, keep=False)]
     r = ""
@@ -49,7 +53,6 @@ def check_duplicates(data, keys):
         r += f"There none duplicates based on keys {keys}\n"
 
     print("\n%s" % r)
-
 
 
 def input_value(x):

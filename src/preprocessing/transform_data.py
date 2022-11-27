@@ -3,9 +3,11 @@ import pandas as pd
 
 from src.tools.tools import read_excel, standard_name_cols, upper_consistent
 
+
 class TransformData:
     def __init__(self):
         pass
+
     def transform_data(self, data_paths):
         self.load_data(data_paths)
         # preprocessed y
@@ -13,7 +15,6 @@ class TransformData:
         # short preprocessing ofr x and join all x
         all_x = self.union_all_x(county_fips)
         return all_x
-
 
     def load_data(self, data_paths):
         self.path_population_x = data_paths["path_population_x"]
@@ -34,7 +35,6 @@ class TransformData:
         self.df_poverty = read_excel(self.path_poverty_x)
         self.df_unemployment = read_excel(self.path_unemploymnt_x)
 
-
     def preprocess_y(self):
         df_y = self.df_presidential_2020.copy(deep=True)
         # upper case all column names
@@ -52,7 +52,6 @@ class TransformData:
         county_fips_list = df_target["COUNTY_FIPS"].unique()
 
         return county_fips_list
-
 
     def union_all_x(self, county_fips_list):
         cols_to_drop_population = [
@@ -116,7 +115,6 @@ class TransformData:
         df_features = df_features.drop("AREA_NAME", axis=1)
         return df_features
 
-
     def _preprocess_x(self, df_x, county_fips_list, feats_to_drop=None):
 
         if feats_to_drop is None:
@@ -135,7 +133,6 @@ class TransformData:
             df_x_county = df_x_county.drop(feats_to_drop, axis=1)
         return df_x_county
 
-
     def _split_state_county(self, df_x, county_fips_list):
         # county
         df_x_county = df_x[df_x["FIPS_CODE"].isin(county_fips_list)]
@@ -152,7 +149,9 @@ class TransformData:
                 county for county in county_fips_list if county not in county_found
             ]
             r += "=" * 88 + "\n"
-            r += f"Nb of counties found: {len(county_found)} / {len(county_fips_list)}\n"
+            r += (
+                f"Nb of counties found: {len(county_found)} / {len(county_fips_list)}\n"
+            )
             r += f"Missing county(ies): {county_n_found}\n"
             r += "=" * 88 + "\n"
         else:

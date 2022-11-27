@@ -1,24 +1,17 @@
 import numpy as np
-from src.models.utils import (
-    feature_selection,
-    make_confusion_matrix,
-    calculate_precision_recall_curve,
-    evaluate_model,
-)
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from numpy import mean
-from sklearn.utils.class_weight import compute_class_weight
-
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    BaggingClassifier,
-    GradientBoostingClassifier,
-)
 from imblearn.ensemble import BalancedBaggingClassifier
-from xgboost import XGBClassifier
-from sklearn.svm import SVC
+from numpy import mean
+from sklearn.ensemble import (BaggingClassifier, GradientBoostingClassifier,
+                              RandomForestClassifier)
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
+from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
+from sklearn.utils.class_weight import compute_class_weight
+from xgboost import XGBClassifier
+
+from src.models.utils import (calculate_precision_recall_curve, evaluate_model,
+                              feature_selection, make_confusion_matrix)
 
 
 class ModelData:
