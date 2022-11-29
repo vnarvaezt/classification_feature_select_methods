@@ -49,7 +49,7 @@ def calculate_precision_recall_curve(model, trainX, trainy, testX, testy, alias)
     # show the legend
     pyplot.legend()
     # show the plot
-    pyplot.show()
+    # pyplot.show()
     pyplot.savefig(f"images/precison_recall_cv_{alias}.png")
 
 
@@ -106,7 +106,6 @@ def make_confusion_matrix(y_true, y_pred, alias, labels=None):
             yref="paper",
         )
     )
-
     # add custom yaxis title
     fig.add_annotation(
         dict(
@@ -125,7 +124,7 @@ def make_confusion_matrix(y_true, y_pred, alias, labels=None):
     # add colorbar
     fig["data"][0]["showscale"] = True
     fig.write_html(f"images/confusion_mx_{alias}.html")
-    fig.show()
+    # fig.show()
 
 
 ####################
@@ -223,5 +222,5 @@ def feature_selection(fs_method, Xtrain, ytrain, estimator) -> list:
 
     elif fs_method is None:
         features = Xtrain.columns.tolist()
-    print(f"Using feature selection method: {fs_method}")
+    print(f"\n Using feature selection method: {fs_method}")
     return features

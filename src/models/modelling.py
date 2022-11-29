@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from imblearn.ensemble import BalancedBaggingClassifier
 from numpy import mean
 from sklearn.ensemble import (BaggingClassifier, GradientBoostingClassifier,
@@ -52,6 +53,7 @@ class ModelData:
         )
 
         make_confusion_matrix(y_test, lr.predict(X_test), "testset_logit_baseline")
+        return lr.predict(X_test)
 
     def run_modelling(self):
 
@@ -60,7 +62,9 @@ class ModelData:
         models = set(self.models_for_prediction.keys()) & set(hp.keys())
 
         # base line model
-        self.learning_logit(self.Xtrain, self.ytrain, self.Xtest, self.ytest, weight=cw)
+        y_pred_logit = self.learning_logit(
+            self.Xtrain, self.ytrain, self.Xtest, self.ytest, weight=cw
+        )
 
         # feature selection method: boruta, CVRFE, kbest, None
         estimation_method = RandomForestClassifier(
@@ -71,8 +75,10 @@ class ModelData:
             self.feature_select, self.Xtrain, self.ytrain, estimator=estimation_method
         )
 
-        results_train, results_test, names = list(), list(), list()
-        # Boucler sur chacun des modèles
+        results_train, results_test = list(), list()
+        model_predictions = self.ytest.copy(deep=True)
+        model_predictions = model_predictions.reset_index()
+        # loop for each model in config
         for model_name in models:
             # fit model
             fit_m = self.fit_model(
@@ -85,10 +91,15 @@ class ModelData:
             )
             # predict y on test set
             y_pred_test = fit_m.predict(self.Xtest[explanatory_vars])
+
+            # save prediction on df
+            model_predictions["y_pred_test" + str(model_name)] = y_pred_test
+
+            # compute scores
             F1_test = f1_score(self.ytest, y_pred_test)
             results_train.append(scores_train)
             results_test.append(F1_test)
-            names.append(model_name)
+
             print(
                 "f1_score: %.3f (train, using RepeatedStratifiedKFold), %.3f (test)"
                 % (mean(scores_train), F1_test)
@@ -104,12 +115,19 @@ class ModelData:
             )
             make_confusion_matrix(self.ytest, y_pred_test, f"testset_{model_name}")
 
+        model_predictions["y_pred_test_logit"] = y_pred_logit
+        # model_predictions = model_predictions.reset_index()
+
+        print(model_predictions)
+        return model_predictions
+
     def model_hyperparameters(self, weight):
         models = {
             "LogisticRegression": LogisticRegression(
                 max_iter=1000, random_state=self.seed, class_weight=weight
             ),
             "SVM": SVC(
+                kernel="linear",
                 gamma="scale",
                 class_weight=weight,
                 probability=True,
