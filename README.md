@@ -1,6 +1,29 @@
-# Classification US 2020 elections
+# Classification task for US 2020 elections
+This project aims at testing diffent feature selection methods:
+- [Boruta](https://pypi.org/project/Boruta/)
+- [RFECV](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFECV.html)
+- [Kbest](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.SelectKBest.html)
+
+These feature selection methods are tested along with the following classifiers: 
+- SVM
+- BaggingClassifier
+- BalancedBaggingClassifier
+- RandomForestClassifier
+- GradientBoosting
+- XGBClassifier
+
+For the US election dataset, the best results were obtained using boruta and SVM classifier.
+
 
 ## Run the program
+# Create a virtual environment named 'myenv'
+```bash
+python3 -m venv myenv
+source myenv/bin/activate
+# install all dependencies
+pip install -r requirements.txt
+``` 
+
 From the terminal run:   
 ```
 python main.py --start start --end end

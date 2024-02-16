@@ -63,7 +63,6 @@ class PreprocessData:
         return df_x_preprocessed
 
     def _split_features_categ_conti(self, df, cat_max_lvls):
-
         """Tag each column name as Categorical or Continuous features.
 
         The following strategy is used :
